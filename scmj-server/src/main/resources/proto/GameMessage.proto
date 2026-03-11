@@ -1,0 +1,148 @@
+syntax = "proto3";
+package msg;
+
+// 确保生成的 Java 代码包路径和类名正确
+option java_package = "msg";
+option java_outer_classname = "GameMessage";
+
+// --- 1. 基础组件 (Data Models) ---
+
+// 麻将牌基本信息
+message CardInfo {
+    int32 type = 1;  // 类型：1-万, 2-筒, 3-条, 4-风/字
+    int32 value = 2; // 数值：1-9 (如果是字牌，可定义 1-7 对应 东南西北中发白)
+}
+
+// 玩家动作枚举
+enum ActionType {
+    DRAW = 0;        // 摸牌
+    DISCARD = 1;     // 出牌
+    PONG = 2;        // 碰
+    KONG = 3;        // 杠
+    HU = 4;          // 胡
+    CHI = 5;         // 吃（当前项目暂不启用，但保留协议支持）
+    PASS = 6;        // 过（放弃操作）
+}
+
+// 固定的牌组（碰、杠、吃的牌）
+message CardSet {
+    ActionType type = 1;      // 组类型
+    repeated CardInfo cards = 2; // 组内的牌
+}
+
+// 玩家在游戏中的实时状态
+message PlayerGameInfo {
+    string nickname = 1;
+    int32 seatIndex = 2;
+    repeated CardInfo handCards = 3;   // 手牌（如果是其他玩家，通常只传 count 或隐藏）
+    repeated CardSet fixedSets = 4;    // 亮出来的牌（碰、杠、吃）
+    repeated CardInfo discardedCards = 5;
+    int32 score = 6;
+    bool isAlreadyHu = 7; // 标记该玩家是否已经胡牌退出战斗
+}
+
+// --- 2. 业务载荷 (Payloads) ---
+
+// 1001: 登录
+message LoginRequest {
+    string nickname = 1;
+}
+
+// 1002: 登录回复
+message LoginResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+// 1003: 房间玩家列表同步
+message PlayerList {
+    repeated PlayerInfo players = 1;
+}
+
+message PlayerInfo {
+    string nickname = 1;
+    bool isHost = 2;
+    int32 seatIndex = 3;
+}
+
+// 1005: 游戏状态/回合数据同步 (Server -> Client)
+message GameStateSync {
+    int32 currentActionSeat = 1;         // 当前行动者座位号 
+    repeated PlayerGameInfo players = 2; // 全局玩家快照
+    CardInfo lastDiscardedCard = 3;      // 场上最后打出的那张牌
+    int32 remainingCardsCount = 4;       // 剩余牌墙数量
+    repeated CardInfo globalDiscardedCards = 5; // 历史弃牌池
+    int32 currentMatchCount = 6;         // 当前是第几局
+    int32 totalMatchCount = 7;           // 房间总局数
+}
+
+// 1006: 玩家操作决策 (Client -> Server)
+message PlayerActionRequest {
+    ActionType action = 1;
+    CardInfo card = 2;                   // 选中的牌（出牌时必填，碰杠胡时由服务器校验）
+    repeated string fanNames = 3; 
+    int32 totalFan = 4;
+    repeated CardInfo chiCards = 5;      // 执行“吃”动作时，附带自己手里的那两张牌
+}
+
+// 1007: 终局大榜单结算报告 (10局打完后发送)
+message FinalResult {
+    string winnerNickname = 1;
+    int32 winningScore = 2;
+    string endReason = 3;
+    repeated PlayerFinalInfo leaderBoard = 4;
+}
+
+// 终局排行榜玩家信息
+message PlayerFinalInfo {
+    string nickname = 1;
+    int32 totalScore = 2;
+    int32 seatIndex = 3;
+    int32 rank = 4;                      // 最终排名 (1, 2, 3, 4)
+}
+
+// 单局分数变化信息
+message PlayerRoundScore {
+    int32 seatIndex = 1;
+    string nickname = 2;
+    int32 scoreChange = 3;       
+    int32 currentTotalScore = 4; 
+}
+
+// 建议的修改方式：将单一赢家信息封装，然后变成 repeated
+message WinnerDetail {
+    int32 seatIndex = 1;
+    string winType = 2;
+    repeated CardSet melds = 3;
+    repeated CardInfo handCards = 4;
+    CardInfo winningCard = 5;
+    repeated string fanNames = 6;
+    int32 totalFan = 7;
+}
+
+// 改造 1008
+message RoundSummary {
+    repeated WinnerDetail winners = 1; // 支持多名赢家
+    repeated PlayerRoundScore scores = 2;
+}
+
+// 1009: 玩家确认结算并准备下一局 (由客户端提交)
+message ReadyNextMatchRequest {
+    bool isReady = 1;
+}
+
+// --- 3. 通用信封 (The Envelope) ---
+
+message MainMessage {
+    int32 code = 1; 
+    
+    LoginRequest loginRequest = 2;       // 1001
+    LoginResponse loginResponse = 3;     // 1002
+    PlayerList playerList = 4;           // 1003
+    // 1004 开始游戏指令 (仅 code)
+    GameStateSync gameState = 5;         // 1005
+    PlayerActionRequest actionReq = 6;   // 1006
+    FinalResult finalResult = 7;         // 1007
+    RoundSummary roundSummary = 8;       // 1008
+    ReadyNextMatchRequest readyReq = 9;  // 1009
+}

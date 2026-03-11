@@ -1,0 +1,10 @@
+{
+  "name": "poker-client",
+  "uuid": "692d48c9-9e0b-4371-a9ce-d07b7422ff05",
+  "creator": {
+    "version": "3.8.8"
+  },
+  "devDependencies": {
+    "protobufjs": "^8.0.0"
+  }
+}

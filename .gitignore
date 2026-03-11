@@ -1,0 +1,101 @@
+# ======================
+# Cocos Creator (scmj-client)
+# ======================
+# Cocos Creator temp files
+scmj-client/temp/
+scmj-client/library/
+scmj-client/profiles/
+scmj-client/settings/
+
+# Node modules
+scmj-client/node_modules/
+scmj-client/package-lock.json
+
+# Build outputs
+scmj-client/build/
+scmj-client/dist/
+
+# TypeScript cache
+scmj-client/*.tsbuildinfo
+
+# ======================
+# Java/Maven (scmj-server)
+# ======================
+# Maven target directory
+scmj-server/target/
+
+# Compiled class files
+scmj-server/**/*.class
+
+# Maven logs
+scmj-server/*.log
+
+# IDE specific files for Maven
+scmj-server/.idea/
+scmj-server/mvnw
+scmj-server/mvnw.cmd
+
+# ======================
+# IDE - IntelliJ IDEA
+# ======================
+*.iml
+.idea/
+*.ipr
+*.iws
+
+# ======================
+# IDE - Visual Studio Code
+# ======================
+.vscode/
+*.code-workspace
+
+# ======================
+# IDE - Eclipse
+# ======================
+.classpath
+.project
+.settings/
+.bin/
+
+# ======================
+# OS generated files
+# ======================
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+
+# ======================
+# Logs and databases
+# ======================
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# ======================
+# Environment variables
+# ======================
+.env
+.env.local
+.env.*.local
+
+# ======================
+# Proto generated files (if any)
+# ======================
+**/generated-sources/
+
+# ======================
+# private
+# ======================
+command.txt
