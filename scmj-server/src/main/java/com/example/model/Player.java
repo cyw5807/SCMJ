@@ -32,6 +32,8 @@ public class Player {
     // 新增状态标记
     private boolean alreadyHu = false;
 
+    private int queSuit = -1; // 默认 -1 表示未定缺
+
     private int roundScoreDelta = 0;
 
     // --- 网络通信属性 ---
@@ -55,6 +57,9 @@ public class Player {
     public void clearMatchData() {
         this.handCards.clear();
         this.formedSets.clear(); // 清理新定义的牌组列表
+        this.discardedCards.clear();
+        this.alreadyHu = false;
+        this.queSuit = -1;
         this.isMyTurn = false;   // 重置回合状态
     }
 
@@ -103,6 +108,9 @@ public class Player {
 
     public boolean isAlreadyHu() { return alreadyHu; }
     public void setAlreadyHu(boolean alreadyHu) { this.alreadyHu = alreadyHu; }
+
+    public int getQueSuit() { return queSuit; }
+    public void setQueSuit(int queSuit) { this.queSuit = queSuit; }
 
     public int getRoundScoreDelta() { return roundScoreDelta; }
     public void resetRoundScoreDelta() { this.roundScoreDelta = 0; }

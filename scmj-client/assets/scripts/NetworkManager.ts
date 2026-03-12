@@ -175,15 +175,6 @@ export class NetworkManager extends Component {
                 reqData.totalFan = extraData.totalFan === undefined ? 0 : extraData.totalFan;
                 reqData.fanNames = extraData.fanNames || [];
             }
-
-            // 场景 C：带有吃牌信息（用于吃 CHI）
-            if (extraData.chiCards !== undefined && Array.isArray(extraData.chiCards)) {
-                // 严格清洗数组里的每一张牌的 number 属性
-                reqData.chiCards = extraData.chiCards.map((c: any) => ({
-                    type: c.type === undefined ? 0 : c.type,
-                    value: c.value === undefined ? 0 : c.value
-                }));
-            }
         }
 
         // 3. 直接调用已封装好的 send 方法

@@ -29,21 +29,27 @@ public class ActionStateMachine {
 
     /**
      * 开启拦截收集窗口
-     * 增加出牌人座位参数
+     * @param exactWaitCount 外部计算好的、精确的未胡存活人数
+     * @param discarderSeat 出牌者的座位
+     * @param roomSize 物理房间总人数 (用于计算座位距离)
      */
-    public void startInterceptWindow(int totalPlayers, int discarderSeat) {
+    public void startInterceptWindow(int exactWaitCount, int discarderSeat, int roomSize) {
         this.actionBuffer.clear();
         this.isIntercepting = true;
         
-        // 极度严谨的数值兜底
-        this.totalRoomPlayers = Math.max(2, totalPlayers);
+        // 1. 物理房间人数：专门留给 resolveMultipleActions 算截胡距离用的
+        this.totalRoomPlayers = Math.max(2, roomSize); 
         this.currentDiscarderSeat = Math.max(0, discarderSeat);
         
-        // 动态计算需要响应的人数，由外部 GameController 计算并传入更佳，
-        // 但这里为了兼容之前的逻辑，暂保留根据 totalPlayers 计算 (外部调用时传入的是 activeCount)
-        this.requiredResponses = this.totalRoomPlayers; 
+        // 2. 动态响应人数：直接信任 GameController 传来的精确数值，坚决不做多余的篡改！
+        this.requiredResponses = exactWaitCount; 
         
         System.out.println("【状态机】玩家 " + this.currentDiscarderSeat + " 出牌，开启拦截窗口，等待 " + this.requiredResponses + " 名玩家响应...");
+        
+        // 极端防呆：如果刚好算出等待人数为 0（虽然外层有 if 判断，但底层也加个保险）
+        if (this.requiredResponses <= 0) {
+            this.isIntercepting = false;
+        }
     }
 
     /**

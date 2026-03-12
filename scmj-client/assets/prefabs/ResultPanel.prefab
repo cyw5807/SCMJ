@@ -167,7 +167,7 @@
       "r": 0,
       "g": 0,
       "b": 0,
-      "a": 150
+      "a": 80
     },
     "_spriteFrame": {
       "__uuid__": "7d8f9b89-4fd1-4c9f-a3ab-38ec7cded7ca@f9941",
@@ -341,7 +341,7 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 119.96236537206268,
+      "width": 120,
       "height": 50.4
     },
     "_anchorPoint": {
@@ -380,7 +380,7 @@
     "_string": "本局最终战绩",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
-    "_actualFontSize": 23.9375,
+    "_actualFontSize": 20,
     "_fontSize": 20,
     "_fontFamily": "Arial",
     "_lineHeight": 40,
@@ -1289,7 +1289,7 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 131.3280612557115,
+      "width": 131.328125,
       "height": 25.2
     },
     "_anchorPoint": {
@@ -1328,7 +1328,7 @@
     "_string": "ScrollView content",
     "_horizontalAlign": 0,
     "_verticalAlign": 0,
-    "_actualFontSize": 19.15,
+    "_actualFontSize": 16,
     "_fontSize": 16,
     "_fontFamily": "Arial",
     "_lineHeight": 20,
@@ -1639,7 +1639,7 @@
     "_string": "确认",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
-    "_actualFontSize": 23.9375,
+    "_actualFontSize": 20,
     "_fontSize": 20,
     "_fontFamily": "Arial",
     "_lineHeight": 40,

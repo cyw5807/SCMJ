@@ -151,11 +151,11 @@ public class GameController {
         this.lastDiscarderSeat = seatIndex; 
         this.globalDiscardedCards.add(card);
         
-        // 2. 动态计算需要等待的人数
+        // 2. 【核心修复】：只遍历当前房间的真实存活玩家
         int waitCount = 0;
-        for (Player p : onlinePlayers.values()) {
-            // 过滤掉出牌者自己，并且过滤掉已经胡牌的玩家
-            if (p.getSeatIndex() != seatIndex && !p.isAlreadyHu()) {
+        for (String cid : MsgDispatcher.roomPlayers) {
+            Player p = onlinePlayers.get(cid);
+            if (p != null && p.getSeatIndex() != seatIndex && !p.isAlreadyHu()) {
                 waitCount++;
             }
         }
@@ -163,15 +163,12 @@ public class GameController {
         // 3. 将控制权交给状态机
         if (waitCount > 0) {
             System.out.println("【状态机】开启拦截窗口，等待 " + waitCount + " 名未胡玩家响应...");
-            this.stateMachine.startInterceptWindow(waitCount, this.lastDiscarderSeat);
+            this.stateMachine.startInterceptWindow(waitCount, this.lastDiscarderSeat, totalPlayers);
         } else {
-            // 极端情况防御：如果场上除了自己其他人都胡了（理论上游戏已经结束，但以防万一）
-            // 或者没有有效拦截者，直接顺延给下一个人
             System.out.println("【状态机】无需等待任何玩家，直接顺延...");
-            int nextSeat = getNextActiveSeat(seatIndex, onlinePlayers, new ArrayList<>(onlinePlayers.keySet()));
+            int nextSeat = getNextActiveSeat(seatIndex, MsgDispatcher.roomPlayers);
             this.currentActionSeat = nextSeat;
-            // ... 给 nextSeat 发牌的逻辑 ...
-            this.lastDiscardedCard = null;
+            this.lastDiscardedCard = null; // 清理浮空牌
         }
     }
 
@@ -184,6 +181,13 @@ public class GameController {
         if (!this.stateMachine.isIntercepting()) {
             System.out.println("【系统护盾】当前不在拦截等待状态，已丢弃玩家 " + seatIndex + " 的迟到/非法动作: " + actionCode);
             return false; // 瞬间拔掉网线，绝对不往下执行任何结算与发牌逻辑！
+        }
+
+        // 【核心护盾】绝对禁止“已经胡牌的玩家”和“打出这张牌的本主”向状态机发送任何指令（包括前端自动发来的 PASS）
+        Player sender = getPlayerBySeat(seatIndex, onlinePlayers, roomPlayers);
+        if (sender == null || sender.isAlreadyHu() || seatIndex == this.lastDiscarderSeat) {
+            System.out.println("【系统护盾】已成功拦截幽灵包！丢弃玩家 " + seatIndex + " (已胡/出牌本主) 的无效拦截指令。");
+            return false; // 直接丢弃，绝对不让它计入状态机的收集总数！
         }
 
         // 1. 把动作丢给状态机记录
@@ -202,7 +206,7 @@ public class GameController {
                 // ==========================================
                 
                 // 使用专门的寻座器，自动跳过已经胡牌的玩家！
-                int nextSeat = getNextActiveSeat(this.lastDiscarderSeat, onlinePlayers, roomPlayers);
+                int nextSeat = getNextActiveSeat(this.lastDiscarderSeat, roomPlayers);
                 this.currentActionSeat = nextSeat;
                 
                 System.out.println("【游戏流转】无人拦截，回合顺延至存活的下家: 座位 " + this.currentActionSeat);
@@ -229,6 +233,10 @@ public class GameController {
                 // ==========================================
                 System.out.println("【游戏流转】触发胡牌结算！胡牌人数: " + finalActions.size());
                 
+                // 【核心修复】：找到“最后一个胡牌的人”（离出牌者座位距离最远的人）
+                int lastWinnerSeat = -1;
+                int maxDistance = -1;
+                
                 // 1. 遍历所有的胡牌动作，逐一进行算分和生成战报
                 for (PendingAction huAct : finalActions) {
                     msg.GameMessage.WinnerDetail detail = processHu(
@@ -236,6 +244,13 @@ public class GameController {
                     );
                     if (detail != null) {
                         this.currentRoundWinners.add(detail);
+                    }
+
+                    // 计算座位距离公式：(胡牌者座位 - 点炮者座位 + 总人数) % 总人数
+                    int distance = (huAct.seatIndex - this.lastDiscarderSeat + roomPlayers.size()) % roomPlayers.size();
+                    if (distance > maxDistance) {
+                        maxDistance = distance;
+                        lastWinnerSeat = huAct.seatIndex; // 不断更新，直到找到离点炮者最远的那个胡牌者
                     }
                 }
 
@@ -253,9 +268,11 @@ public class GameController {
                     return false; 
                 }
 
-                // 3. 游戏继续：游标跳过已胡玩家，移交回合并发牌
-                int nextSeat = getNextActiveSeat(this.lastDiscarderSeat, onlinePlayers, roomPlayers);
+                // 3. 【核心修复】：游戏继续，从“最后一个胡牌玩家”开始顺延游标！
+                System.out.println("【游戏流转】最后一个胡牌者为: 座位 " + lastWinnerSeat + "，开始寻找下一位存活玩家...");
+                int nextSeat = getNextActiveSeat(lastWinnerSeat, roomPlayers);
                 this.currentActionSeat = nextSeat;
+                System.out.println("【游戏流转】回合已移交至: 座位 " + this.currentActionSeat);
                 
                 Player nextPlayer = getPlayerBySeat(nextSeat, onlinePlayers, roomPlayers);
                 CardInfo newCard = drawOneCard();
@@ -269,8 +286,8 @@ public class GameController {
                     this.stateMachine.resetMachine();
                     return false;
                 }
-                // 注意：这里没有从 globalDiscardedCards.remove()！
-                // 被胡的那张牌将物理保留在点炮者的牌河中。
+                
+                // 不清除 globalDiscardedCards 中的牌，使其留在点炮者的牌河中
             }
             else {
                 // ==========================================
@@ -404,16 +421,16 @@ public class GameController {
     /**
      * 寻找下一个未胡牌的存活玩家
      */
-    private int getNextActiveSeat(int currentSeat, Map<String, Player> onlinePlayers, List<String> roomPlayers) {
+    public int getNextActiveSeat(int currentSeat, List<String> roomPlayers) {
         int total = roomPlayers.size();
         for (int i = 1; i <= total; i++) {
             int next = (currentSeat + i) % total;
-            Player p = getPlayerBySeat(next, onlinePlayers, roomPlayers);
+            Player p = getPlayerBySeat(next, MsgDispatcher.onlinePlayers, roomPlayers);
             if (p != null && !p.isAlreadyHu()) {
                 return next;
             }
         }
-        return currentSeat; // 理论上不会走到这里，因为会在剩下1人时提前结算
+        return currentSeat; 
     }
 
     /**
@@ -700,6 +717,8 @@ public class GameController {
                         .setNickname(p.getNickname() == null ? "未知玩家" : p.getNickname())
                         .setSeatIndex(p.getSeatIndex())
                         .setScore(p.getScore())
+                        .setIsAlreadyHu(p.isAlreadyHu())
+                        .setQueSuit(p.getQueSuit())
                         .addAllHandCards(p.getHandCards() == null ? new ArrayList<>() : p.getHandCards())
                         .addAllFixedSets(p.getFormedSets() == null ? new ArrayList<>() : p.getFormedSets()) 
                         .addAllDiscardedCards(p.getDiscardedCards() == null ? new ArrayList<>() : p.getDiscardedCards())
@@ -737,6 +756,11 @@ public class GameController {
             }
         }
         return null;
+    }
+
+    // --- 状态访问与清理器 ---
+    public void clearLastDiscardedCard() { 
+        this.lastDiscardedCard = null; 
     }
 
     // --- 属性访问器 ---

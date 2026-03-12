@@ -6,6 +6,7 @@ export const enum ActionType {
   HU = "HU",
   CHI = "CHI",
   PASS = "PASS",
+  DING_QUE = "DING_QUE",
 }
 
 export const encodeActionType: { [key: string]: number } = {
@@ -16,6 +17,7 @@ export const encodeActionType: { [key: string]: number } = {
   HU: 4,
   CHI: 5,
   PASS: 6,
+  DING_QUE: 7,
 };
 
 export const decodeActionType: { [key: number]: ActionType } = {
@@ -26,6 +28,7 @@ export const decodeActionType: { [key: number]: ActionType } = {
   4: ActionType.HU,
   5: ActionType.CHI,
   6: ActionType.PASS,
+  7: ActionType.DING_QUE,
 };
 
 export interface CardInfo {
@@ -167,6 +170,7 @@ export interface PlayerGameInfo {
   discardedCards?: CardInfo[];
   score?: number;
   isAlreadyHu?: boolean;
+  queSuit?: number;
 }
 
 export function encodePlayerGameInfo(message: PlayerGameInfo): Uint8Array {
@@ -242,6 +246,13 @@ function _encodePlayerGameInfo(message: PlayerGameInfo, bb: ByteBuffer): void {
     writeVarint32(bb, 56);
     writeByte(bb, $isAlreadyHu ? 1 : 0);
   }
+
+  // optional int32 queSuit = 8;
+  let $queSuit = message.queSuit;
+  if ($queSuit !== undefined) {
+    writeVarint32(bb, 64);
+    writeVarint64(bb, intToLong($queSuit));
+  }
 }
 
 export function decodePlayerGameInfo(binary: Uint8Array): PlayerGameInfo {
@@ -306,6 +317,12 @@ function _decodePlayerGameInfo(bb: ByteBuffer): PlayerGameInfo {
       // optional bool isAlreadyHu = 7;
       case 7: {
         message.isAlreadyHu = !!readByte(bb);
+        break;
+      }
+
+      // optional int32 queSuit = 8;
+      case 8: {
+        message.queSuit = readVarint32(bb);
         break;
       }
 

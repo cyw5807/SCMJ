@@ -22,6 +22,7 @@ enum ActionType {
     HU = 4;          // 胡
     CHI = 5;         // 吃（当前项目暂不启用，但保留协议支持）
     PASS = 6;        // 过（放弃操作）
+    DING_QUE = 7;    // 定缺动作
 }
 
 // 固定的牌组（碰、杠、吃的牌）
@@ -39,6 +40,7 @@ message PlayerGameInfo {
     repeated CardInfo discardedCards = 5;
     int32 score = 6;
     bool isAlreadyHu = 7; // 标记该玩家是否已经胡牌退出战斗
+    int32 queSuit = 8;    // 定缺花色 (-1表示还未定缺，0,1,2 分别代表万,条,筒)
 }
 
 // --- 2. 业务载荷 (Payloads) ---
